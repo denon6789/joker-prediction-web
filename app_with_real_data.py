@@ -122,7 +122,8 @@ def evaluate_predictions(predictor, test_df, name):
 
 try:
     # Load data
-    df = load_data(force_update=update_button)
+    with st.spinner('Loading and processing Joker data...'):
+        df = load_data(force_update=update_button)
     
     # Show data info
     st.write("## Data Overview")
