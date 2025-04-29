@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.multioutput import MultiOutputRegressor
 import plotly.graph_objects as go
 from data_fetcher import JokerDataFetcher
 
@@ -49,11 +50,11 @@ class AdvancedPredictor:
     def __init__(self, model_type='rf'):
         self.model_type = model_type
         if model_type == 'rf':
-            self.numbers_model = RandomForestRegressor(n_estimators=100, random_state=42)
-            self.joker_model = RandomForestRegressor(n_estimators=100, random_state=42)
+            base_model = RandomForestRegressor(n_estimators=100, random_state=42)
         else:
-            self.numbers_model = GradientBoostingRegressor(n_estimators=100, random_state=42)
-            self.joker_model = GradientBoostingRegressor(n_estimators=100, random_state=42)
+            base_model = GradientBoostingRegressor(n_estimators=100, random_state=42)
+        self.numbers_model = MultiOutputRegressor(base_model)
+        self.joker_model = GradientBoostingRegressor(n_estimators=100, random_state=42)
         self.scaler = StandardScaler()
     
     def train(self, X, y_numbers, y_joker):
