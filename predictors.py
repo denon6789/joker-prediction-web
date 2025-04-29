@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from sklearn.neural_network import MLPRegressor
 
 class BasePredictor:
     def __init__(self, df):
@@ -53,68 +51,42 @@ class RBMPredictor(BasePredictor):
             joker_weights = np.array(joker_weights) / sum(joker_weights)
             joker = np.random.choice(range(1, 21), p=joker_weights)
             
-            predictions.append((numbers, joker))
+            predictions.append((numbers, int(joker)))
         
         return predictions
 
 class DLPredictor(BasePredictor):
-    def __init__(self, df):
-        super().__init__(df)
-        self._train_model()
-    
-    def _prepare_sequences(self, window_size=10):
-        """Prepare sequences for training"""
-        X, y = [], []
-        for i in range(len(self.numbers_matrix) - window_size):
-            X.append(self.numbers_matrix[i:i+window_size].flatten())
-            y.append(np.concatenate([self.numbers_matrix[i+window_size], [self.jokers[i+window_size]]]))
-        return np.array(X), np.array(y)
-    
-    def _train_model(self, window_size=10):
-        """Train a neural network model"""
-        X, y = self._prepare_sequences(window_size)
-        if len(X) == 0:
-            # Not enough data, use simpler model
-            self.model = None
-            return
-            
-        self.scaler = StandardScaler()
-        X_scaled = self.scaler.fit_transform(X)
-        
-        self.model = MLPRegressor(
-            hidden_layer_sizes=(100, 50),
-            max_iter=1000,
-            random_state=42
-        )
-        self.model.fit(X_scaled, y)
-    
     def predict(self, n_predictions=1):
-        """Generate predictions using the neural network"""
-        if self.model is None:
-            # Fall back to simpler prediction
-            return RBMPredictor(self.df).predict(n_predictions)
-            
+        """Generate predictions using recent patterns"""
         predictions = []
-        last_sequence = self.numbers_matrix[-10:].flatten()
+        recent_draws = self.df.iloc[-5:]  # Use last 5 draws
         
         for _ in range(n_predictions):
-            # Get model prediction
-            X = self.scaler.transform([last_sequence])
-            pred = self.model.predict(X)[0]
+            # Calculate probabilities based on recent numbers
+            number_weights = np.ones(45)  # Initialize with base probability
+            joker_weights = np.ones(20)   # Initialize with base probability
             
-            # Round to integers and ensure valid ranges
-            numbers = np.clip(np.round(pred[:5]), 1, 45).astype(int)
-            numbers = sorted(np.unique(numbers))
-            # If we don't have enough numbers, add some randomly
+            # Increase weights for recent numbers
+            for _, row in recent_draws.iterrows():
+                for num in row['numbers']:
+                    number_weights[num-1] += 1
+                joker_weights[row['joker']-1] += 1
+            
+            # Normalize weights
+            number_weights = number_weights / number_weights.sum()
+            joker_weights = joker_weights / joker_weights.sum()
+            
+            # Generate prediction
+            numbers = []
             while len(numbers) < 5:
-                new_num = np.random.randint(1, 46)
-                if new_num not in numbers:
-                    numbers.append(new_num)
-            numbers = sorted(numbers[:5])
+                num = np.random.choice(range(1, 46), p=number_weights)
+                if num not in numbers:
+                    numbers.append(num)
+            numbers.sort()
             
-            joker = int(np.clip(np.round(pred[5]), 1, 20))
+            joker = np.random.choice(range(1, 21), p=joker_weights)
             
-            predictions.append((numbers, joker))
+            predictions.append((numbers, int(joker)))
         
         return predictions
 
@@ -132,12 +104,11 @@ class EnsemblePredictor(BasePredictor):
         for predictor in self.predictors:
             all_predictions.extend(predictor.predict(n_predictions))
         
-        # Select the most diverse predictions
+        # Select random predictions from the pool
         selected = []
         for _ in range(n_predictions):
             if not all_predictions:
                 break
-            # Select a random prediction
             idx = np.random.randint(len(all_predictions))
             selected.append(all_predictions.pop(idx))
         
