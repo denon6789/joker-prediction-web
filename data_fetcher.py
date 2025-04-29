@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 import os
 import json
@@ -36,14 +37,14 @@ class JokerDataFetcher:
         """Parse draw data from OPAP API"""
         try:
             winning_numbers = draw_data['winningNumbers']
-            numbers = sorted([num for num in winning_numbers['list']])
+            numbers = sorted([int(num) for num in winning_numbers['list']])
             bonus = winning_numbers.get('bonus', [None])[0]
             
             return {
                 'date': datetime.fromtimestamp(draw_data['drawTime'] / 1000).strftime('%Y-%m-%d'),
                 'draw_id': draw_data['drawId'],
                 'numbers': numbers,
-                'joker': bonus
+                'joker': int(bonus) if bonus else None
             }
         except:
             return None
@@ -52,13 +53,19 @@ class JokerDataFetcher:
         """Load existing data from CSV file"""
         if os.path.exists(self.data_file):
             df = pd.read_csv(self.data_file)
+            # Convert string representation of list to actual list
+            df['numbers'] = df['numbers'].apply(lambda x: [int(n) for n in eval(str(x))])
             df['date'] = pd.to_datetime(df['date'])
+            df['joker'] = df['joker'].astype(int)
             return df
         return pd.DataFrame(columns=['date', 'draw_id', 'numbers', 'joker'])
     
     def save_data(self, df):
         """Save data to CSV file"""
-        df.to_csv(self.data_file, index=False)
+        # Convert lists to string representation for saving
+        df_to_save = df.copy()
+        df_to_save['numbers'] = df_to_save['numbers'].apply(str)
+        df_to_save.to_csv(self.data_file, index=False)
         print(f"Saved {len(df)} draws to {self.data_file}")
     
     def update_data(self):
@@ -111,3 +118,5 @@ if __name__ == "__main__":
     print(f"Total draws: {len(df)}")
     if len(df) > 0:
         print(f"Date range: {df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}")
+        print("Sample row:")
+        print(df.iloc[0])
