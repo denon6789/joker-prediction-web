@@ -5,11 +5,58 @@ import plotly.graph_objects as go
 from predictors import RBMPredictor, DLPredictor, EnsemblePredictor
 from datetime import datetime, timedelta
 
-# Page config
-st.set_page_config(page_title="Joker Prediction Analysis", layout="wide")
+# Page config with improved styling
+st.set_page_config(
+    page_title="Joker Prediction Analysis",
+    page_icon="🎲",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Title
-st.title("Joker Prediction Analysis")
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    .stApp {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .st-emotion-cache-1v0mbdj {
+        margin-top: 1rem;
+    }
+    .st-emotion-cache-1wivap2 {
+        margin-bottom: 2rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Title with emoji and description
+st.title("🎲 Joker Prediction Analysis")
+st.markdown("""
+This app provides predictions and analysis for the Joker lottery game using three different prediction models:
+- **RBM Predictor**: Uses Restricted Boltzmann Machine patterns
+- **DL Predictor**: Uses Deep Learning patterns from recent draws
+- **Ensemble Predictor**: Combines predictions from both models
+""")
+
+# Add a sidebar with additional information
+with st.sidebar:
+    st.header("About")
+    st.write("This app uses machine learning to analyze Joker lottery patterns and make predictions.")
+    
+    st.header("How it works")
+    st.write("""
+    1. Historical data is analyzed for patterns
+    2. Three different models make predictions
+    3. Performance is tracked and visualized
+    4. Moving averages show trend lines
+    """)
+    
+    st.header("Disclaimer")
+    st.warning("""
+    These predictions are for educational purposes only.
+    Lottery games are based on chance, and no prediction system can guarantee wins.
+    Please gamble responsibly.
+    """)
 
 def generate_sample_data(n_draws=500):
     """Generate sample data when real data is not available"""
