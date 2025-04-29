@@ -75,7 +75,21 @@ def load_data(force_update=False):
     
     if len(df) == 0:
         st.error("No data available. Please check your internet connection and try updating.")
-        st.stop()
+        # Try to generate sample data
+        st.info("Generating sample data for demonstration...")
+        dates = pd.date_range(start='2024-01-01', end='2024-04-29', freq='3D')
+        data = []
+        for date in dates:
+            numbers = sorted(np.random.choice(range(1, 46), size=5, replace=False))
+            joker = np.random.randint(1, 21)
+            data.append({
+                'date': date,
+                'draw_id': len(data) + 1,
+                'numbers': numbers,
+                'joker': joker
+            })
+        df = pd.DataFrame(data)
+        st.success("Sample data generated successfully!")
     
     return df
 
