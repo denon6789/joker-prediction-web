@@ -10,22 +10,21 @@ import time
 class JokerDataFetcher:
     def __init__(self, data_file='joker_results.csv'):
         self.data_file = data_file
-        self.base_url = "https://api.opap.gr/games/v1.0/5104"
-        self.draw_url = "https://api.opap.gr/draws/v3.0/5104"
+        self.base_url = "https://api.opap.gr/draws/v3.0/5104"
         self.page_size = 50
     
     def _get_last_draw_id(self):
         """Get the last draw ID from OPAP API"""
         try:
-            url = f"{self.base_url}/last-result-and-active"
+            url = f"{self.base_url}/last"
             print(f"Fetching last draw from: {url}")
             response = requests.get(url, timeout=10)
             print(f"Response status: {response.status_code}")
             
             if response.status_code == 200:
                 data = response.json()
-                if 'last' in data and 'drawId' in data['last']:
-                    return data['last']['drawId']
+                if 'drawId' in data:
+                    return data['drawId']
             print(f"Error response: {response.text}")
             return None
         except Exception as e:
@@ -35,7 +34,7 @@ class JokerDataFetcher:
     def _get_draw(self, draw_id):
         """Get a specific draw by ID"""
         try:
-            url = f"{self.draw_url}/{draw_id}"
+            url = f"{self.base_url}/{draw_id}"
             print(f"Fetching draw {draw_id}")
             response = requests.get(url, timeout=10)
             
