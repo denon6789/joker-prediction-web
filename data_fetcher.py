@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import os
 import json
 import traceback
+import time
 
 class JokerDataFetcher:
     def __init__(self, data_file='joker_results.csv'):
@@ -94,28 +95,82 @@ class JokerDataFetcher:
             print(f"Error saving data: {str(e)}")
             traceback.print_exc()
     
+    def fetch_historical_data(self, start_year=2000):
+        """Fetch all historical data from start_year to now"""
+        print(f"Fetching historical data from {start_year} to present...")
+        
+        # Load existing data first
+        df = self.load_existing_data()
+        
+        # Calculate date ranges
+        start_date = datetime(start_year, 1, 1)
+        current_date = datetime.now()
+        
+        # Fetch data in 3-month chunks to avoid timeouts
+        chunk_delta = timedelta(days=90)
+        chunk_start = start_date
+        
+        all_draws = []
+        
+        while chunk_start < current_date:
+            chunk_end = min(chunk_start + chunk_delta, current_date)
+            print(f"\nFetching chunk: {chunk_start.strftime('%Y-%m-%d')} to {chunk_end.strftime('%Y-%m-%d')}")
+            
+            draws = self._get_draws_for_date_range(chunk_start, chunk_end)
+            if draws:
+                for draw in draws:
+                    parsed = self._parse_draw(draw)
+                    if parsed:
+                        all_draws.append(parsed)
+                print(f"Fetched {len(draws)} draws in this chunk")
+            
+            # Add a small delay to avoid rate limiting
+            time.sleep(1)
+            chunk_start = chunk_end
+        
+        if all_draws:
+            print(f"\nProcessing {len(all_draws)} total draws...")
+            new_df = pd.DataFrame(all_draws)
+            new_df['date'] = pd.to_datetime(new_df['date'])
+            
+            # Combine with existing data, removing duplicates
+            if len(df) > 0:
+                new_df = new_df[~new_df['draw_id'].isin(df['draw_id'])]
+                if len(new_df) > 0:
+                    df = pd.concat([df, new_df], ignore_index=True)
+            else:
+                df = new_df
+            
+            # Sort by date and save
+            df = df.sort_values('date')
+            self.save_data(df)
+            print(f"\nFinal dataset: {len(df)} draws from {df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}")
+        else:
+            print("No draws found!")
+        
+        return df
+    
     def update_data(self):
         """Update data file with new draws"""
         print("Loading existing data...")
         df = self.load_existing_data()
         
-        # Get latest date in our data
-        if len(df) > 0:
-            latest_date = df['date'].max()
-        else:
-            latest_date = datetime(2000, 1, 1)
+        if len(df) == 0:
+            print("No existing data, fetching full historical data...")
+            return self.fetch_historical_data()
         
-        # Get current date
+        # Get latest date in our data
+        latest_date = df['date'].max()
         current_date = datetime.now()
         
+        # If our data is more than a month old, do a full update
+        if latest_date < current_date - timedelta(days=30):
+            print("Data is more than a month old, fetching full historical data...")
+            return self.fetch_historical_data()
+        
+        # Otherwise just get recent draws
         print(f"Fetching draws from {latest_date.strftime('%Y-%m-%d')} to {current_date.strftime('%Y-%m-%d')}...")
         draws = self._get_draws_for_date_range(latest_date, current_date)
-        
-        if not draws:
-            # If no draws found, try getting last month's data
-            print("No draws found, trying last month...")
-            month_ago = current_date - timedelta(days=30)
-            draws = self._get_draws_for_date_range(month_ago, current_date)
         
         new_draws = []
         for draw in draws:
@@ -129,8 +184,7 @@ class JokerDataFetcher:
             new_df['date'] = pd.to_datetime(new_df['date'])
             
             # Remove duplicates based on draw_id
-            if len(df) > 0:
-                new_df = new_df[~new_df['draw_id'].isin(df['draw_id'])]
+            new_df = new_df[~new_df['draw_id'].isin(df['draw_id'])]
             
             if len(new_df) > 0:
                 print(f"Adding {len(new_df)} new draws")
@@ -153,7 +207,7 @@ class JokerDataFetcher:
 if __name__ == "__main__":
     # Test the fetcher
     fetcher = JokerDataFetcher()
-    df = fetcher.update_data()
+    df = fetcher.fetch_historical_data()  # This will fetch all historical data
     print(f"Total draws: {len(df)}")
     if len(df) > 0:
         print(f"Date range: {df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}")

@@ -74,10 +74,12 @@ def load_data(force_update=False):
     """Load and preprocess the Joker dataset"""
     fetcher = JokerDataFetcher()
     
-    if force_update or auto_update:
-        df = fetcher.update_data()
+    if force_update:
+        df = fetcher.fetch_historical_data()  # Get full historical data
     else:
         df = fetcher.load_existing_data()
+        if len(df) == 0:
+            df = fetcher.fetch_historical_data()  # Get full historical data if none exists
     
     if len(df) == 0:
         st.error("No data available. Please check your internet connection and try updating.")
