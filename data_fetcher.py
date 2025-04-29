@@ -11,13 +11,14 @@ class JokerDataFetcher:
     def __init__(self, data_file='joker_results.csv'):
         self.data_file = data_file
         self.base_url = "https://api.opap.gr/draws/v3.0/5104"
+        self.game_url = "https://api.opap.gr/games/v1.0/5104"
         self.page_size = 50
     
     def _get_last_draw_id(self):
         """Get the last draw ID from OPAP API"""
         try:
-            url = f"{self.base_url}/last"
-            print(f"Fetching last draw from: {url}")
+            url = f"{self.game_url}/active"
+            print(f"Fetching active draws from: {url}")
             response = requests.get(url, timeout=10)
             print(f"Response status: {response.status_code}")
             
@@ -25,6 +26,9 @@ class JokerDataFetcher:
                 data = response.json()
                 if 'drawId' in data:
                     return data['drawId']
+                elif 'pricePoints' in data and len(data['pricePoints']) > 0:
+                    # Get the first active draw ID
+                    return data['pricePoints'][0]['drawId']
             print(f"Error response: {response.text}")
             return None
         except Exception as e:
