@@ -6,13 +6,19 @@ from predictors import RBMPredictor, DLPredictor, EnsemblePredictor
 from datetime import datetime, timedelta
 from data_fetcher import JokerDataFetcher
 
-# Page config with improved styling
+# Page config
 st.set_page_config(
-    page_title="Joker Prediction Analysis",
+    page_title="Joker Predictions",
     page_icon="🎲",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
+
+# Title
+st.title("🎲 Joker Prediction App")
+st.markdown("""
+Welcome to the Joker Prediction App! This page uses simple statistical models for predictions.
+For advanced machine learning models, check the 'Advanced Predictions' page in the sidebar.
+""")
 
 # Custom CSS for better styling
 st.markdown("""
